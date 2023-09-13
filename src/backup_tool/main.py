@@ -81,7 +81,12 @@ class ListComparator:
         import shutil
         
         #find empty directory
-        DEST_BASE_DIR = './BACKUP/'
+        DEST_SUBDIR = 'BACKUP'
+        new_dest_dir = os.path.join(dest_dir, DEST_SUBDIR)
+        suffix = 0
+        while os.path.exists(new_dest_dir):
+            new_dest_dir = os.path.join(dest_dir, f'{DEST_SUBDIR}_{suffix}')
+            suffix += 1            
         
         num_files = len(copylist)
         len_digits = len(str(num_files))
@@ -90,9 +95,11 @@ class ListComparator:
             if not file.copyme:
                 continue
             
-            relpath = os.path.relpath(file.filename, SOURCE_DIR)
+            relpath = os.path.relpath(file.filename, source_dir)
             #print (relpath)
-            dest_fn = os.path.join(DEST_DIR, relpath)
+            dest_fn = os.path.join(new_dest_dir, relpath)
+            print (f'dest_dir:{dest_dir}\tdest_subdir:{DEST_SUBDIR}\tdest_fn{dest_fn}\tnew_dest_dir:{new_dest_dir}')
+            #stop
             print (f'copying file {str(i+1).zfill(len_digits)}/{num_files}: {file.filename[:-30]}')
             
             os.makedirs(os.path.dirname(dest_fn), exist_ok=True)
@@ -164,7 +171,7 @@ if __name__ == '__main__':
                   '.eps',]
                   #'.pdf',
                   
-    extensions = ['.jpg', '.jpeg', 
+    extensions = ['.bmp','.jpg', '.jpeg', 
                   '.png',
                   '.gif',
                   '.svg',]
