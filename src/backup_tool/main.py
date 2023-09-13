@@ -31,7 +31,6 @@ class FileData:
     checksum: int = None
     copyme: bool = False
 
-
 import glob
 
 @dataclass
@@ -68,6 +67,28 @@ class ListComparator:
     source_list: FileList
     dest_list: FileList
     
+    @staticmethod
+    def save_files(copylist, source_dir, dest_dir):
+        import shutil
+        
+        #find empty directory
+        DEST_BASE_DIR = './BACKUP/'
+        
+        num_files = len(copylist)
+        len_digits = len(str(num_files))
+        
+        for i, file in enumerate(copylist):
+            if not file.copyme:
+                continue
+            
+            relpath = os.path.relpath(file.filename, SOURCE_DIR)
+            #print (relpath)
+            dest_fn = os.path.join(DEST_DIR, relpath)
+            print (f'copying file {str(i+1).zfill(len_digits)}/{num_files}: {file.filename[:-30]}')
+            
+            os.makedirs(os.path.dirname(dest_fn), exist_ok=True)
+            shutil.copy2(file.filename, dest_fn)
+    
     def compare(self):
         dest_sizes = self.dest_list.search()
         source_sizes = self.source_list.search()
@@ -99,25 +120,38 @@ class ListComparator:
                     continue
                 
                 copyme.append(file)
-                
+            return copyme
         
 
+
 if __name__ == '__main__':
+    
+    import time
+
     SOURCE_DIR = './src/backup_tool'
     DEST_DIR = './test_dest'
     
+        
     fl = FileList(SOURCE_DIR, ext_filter='.bmp')
     fl2 = FileList(DEST_DIR, ext_filter='.bmp')
+    
+    t_fl = time.process_time()
     files = fl.search()
+    print(f'source dir search took {time.process_time() - t_fl} seconds')
+    t_fl2 = time.process_time()
     files2 = fl2.search()
+    print(f'dest dir search took {time.process_time() - t_fl2} seconds')
+    print()
     
     c = ListComparator(fl, fl2)
-    print (c.compare())
+    copylist = c.compare()
+    ListComparator.save_files(copylist, SOURCE_DIR, DEST_DIR)
+    #print (f'copy list: {copylist}')
 
-    '''
+    print()
     #print (files)
     print (f'{len(fl)} files found in {SOURCE_DIR} with extension {fl.ext_filter}')
-    print (files)
+    #print (files)
     print (f'{len(fl2)} files found in {DEST_DIR} with extension {fl2.ext_filter}')
-    print (files2)
-    '''
+    #print (files2)
+    #'''
