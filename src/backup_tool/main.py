@@ -54,13 +54,15 @@ class FileList:
                 files_found += 1
                 size = os.path.getsize(file)
                 
-                if size in sizes:
+                if size in sizes:                
                     sizes[size].append(FileData(file))
                 else:
-                    #print (f'found unique size, making {len(sizes.values())} sizes total')
                     sizes[size] = [FileData(file)]
             print (f'found {files_found}')
         
+        total_files = len([len(files) for files in sizes.values()])
+        print (f'total files: {total_files}')
+        print (f'total sizes: {len(sizes.keys())}')
         return sizes
     
     def __len__(self):
@@ -98,7 +100,7 @@ class ListComparator:
             relpath = os.path.relpath(file.filename, source_dir)
             #print (relpath)
             dest_fn = os.path.join(new_dest_dir, relpath)
-            print (f'dest_dir:{dest_dir}\tdest_subdir:{DEST_SUBDIR}\tdest_fn{dest_fn}\tnew_dest_dir:{new_dest_dir}')
+            #print (f'dest_dir:{dest_dir}\tdest_subdir:{DEST_SUBDIR}\tdest_fn{dest_fn}\tnew_dest_dir:{new_dest_dir}')
             #stop
             print (f'copying file {str(i+1).zfill(len_digits)}/{num_files}: {file.filename[:-30]}')
             
@@ -109,40 +111,47 @@ class ListComparator:
         dest_sizes = self.dest_list.search()
         source_sizes = self.source_list.search()
         
-        matches_found = 0
+        backups_found = 0
+        no_backups_found = 0
         copyme = []
         
-        for size, filedatas in source_sizes.items():
+        for size, files in source_sizes.items():
+            #print (f'processing {len(files)} files')
             if size not in dest_sizes.keys():
                 # mutate source_list
-                for file in source_sizes[size]:
+                for file in files:
+                    no_backups_found += 1
                     file.copyme = True
                 continue
             
             # if size IS already in list, we need to compute checksums to know if they're the same or not
             dest_files = dest_sizes[size]
-            source_files = source_sizes[size]
             
             # calculate checksums for all files of this size, both in src and dest dirs
-            for fileset in [dest_files, source_files]:
-                for file in fileset:
-                    with open(file.filename, 'rb') as f:
-                        digest = hashlib.file_digest(f, 'blake2b') #blake2b is robust and fast, apparently
-                    file.checksum = digest.hexdigest()
+            for fileset in [dest_files, files]:
+                for _files in fileset:
+                    for file in _files:
+                        with open(file.filename, 'rb') as f:
+                            digest = hashlib.file_digest(f, 'blake2b') #blake2b is robust and fast, apparently
+                        file.checksum = digest.hexdigest()
             
             # now we can check to see if the source files are really unique
-            for file in source_files:
+            for file in files:
                 dest_checksums = [f.checksum for f in dest_files]
                 #skip if already exists
                 
                 if file.checksum in dest_checksums:
-                    matches_found += 1
+                    backups_found += 1
                     continue
                 
+                no_backups_found += 1
                 file.copyme = True
             
-            copyme.extend(f for f in source_files if f.copyme)
-        print (f'found existing backups for {matches_found} files')
+            print (len(files))
+            stop
+            copyme.extend([f for f in files if f.copyme])
+        print (f'found backups for {backups_found} files')
+        print (f'found {no_backups_found} files that need to be backed up')
         return copyme
         
 
@@ -158,7 +167,8 @@ if __name__ == '__main__':
     DEST_DIR = 'Y:\\Pictures'
     #DEST_DIR = 'Y:\Pictures\kelly_single'
     
-    extensions = ['.jpg', '.jpeg', '.jpe', '.jig', '.jfif', '.jfi',
+    extensions = ['.bmp',
+                  '.jpg', '.jpeg', '.jpe', '.jig', '.jfif', '.jfi',
                   '.png',
                   '.gif',
                   '.webp',
@@ -175,7 +185,8 @@ if __name__ == '__main__':
                   '.png',
                   '.gif',
                   '.svg',]
-                  
+    
+    #extensions.extend([e.upper() for e in extensions])
     
         
     fl = FileList(SOURCE_DIR, ext_filters=extensions)
